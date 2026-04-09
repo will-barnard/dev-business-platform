@@ -1,0 +1,60 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - internal
+
+  backend:
+    build:
+      context: ./packages/backend
+    expose:
+      - "3001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@postgres:5432/willbarnard
+      - JWT_SECRET=${JWT_SECRET}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-.will-barnard.com}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - FROM_EMAIL=${FROM_EMAIL:-noreply@will-barnard.com}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - NODE_ENV=production
+      - ROOT_URL=${ROOT_URL:-https://will-barnard.com}
+      - STUDIO_URL=${STUDIO_URL:-https://studio.will-barnard.com}
+      - ADMIN_URL=${ADMIN_URL:-https://admin.will-barnard.com}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:16-alpine
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=willbarnard
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - internal
+
+volumes:
+  postgres-data:
+    name: willbarnard-postgres
+
+networks:
+  internal:

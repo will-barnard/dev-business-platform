@@ -1,0 +1,127 @@
+const express = require('express');
+const { pool } = require('../db');
+const { requireAdmin } = require('../middleware/auth');
+
+const router = express.Router();
+
+// Get all projects (public)
+router.get('/projects', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM projects ORDER BY display_order ASC, created_at DESC'
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('Get projects error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get single project (public)
+router.get('/projects/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid project ID' });
+
+    const { rows } = await pool.query('SELECT * FROM projects WHERE id = $1', [id]);
+    if (rows.length === 0) return res.status(404).json({ error: 'Project not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Get project error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create project (admin only)
+router.post('/projects', requireAdmin, async (req, res) => {
+  try {
+    const { title, description, url, github_url, images, is_major, display_order } = req.body;
+
+    if (!title || title.length > 255) {
+      return res.status(400).json({ error: 'Title is required and must be under 255 characters' });
+    }
+    if (url && url.length > 500) return res.status(400).json({ error: 'URL is too long' });
+    if (github_url && github_url.length > 500) return res.status(400).json({ error: 'GitHub URL is too long' });
+
+    const { rows } = await pool.query(
+      `INSERT INTO projects (title, description, url, github_url, images, is_major, display_order)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [
+        title.trim(),
+        description || null,
+        url || null,
+        github_url || null,
+        JSON.stringify(images || []),
+        is_major || false,
+        display_order || 0,
+      ]
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('Create project error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update project (admin only)
+router.put('/projects/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid project ID' });
+
+    const { title, description, url, github_url, images, is_major, display_order } = req.body;
+
+    if (title !== undefined && (!title || title.length > 255)) {
+      return res.status(400).json({ error: 'Title must be under 255 characters' });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE projects SET
+        title = COALESCE($1, title),
+        description = COALESCE($2, description),
+        url = COALESCE($3, url),
+        github_url = COALESCE($4, github_url),
+        images = COALESCE($5, images),
+        is_major = COALESCE($6, is_major),
+        display_order = COALESCE($7, display_order),
+        updated_at = NOW()
+       WHERE id = $8
+       RETURNING *`,
+      [
+        title ? title.trim() : null,
+        description !== undefined ? description : null,
+        url !== undefined ? url : null,
+        github_url !== undefined ? github_url : null,
+        images !== undefined ? JSON.stringify(images) : null,
+        is_major !== undefined ? is_major : null,
+        display_order !== undefined ? display_order : null,
+        id,
+      ]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ error: 'Project not found' });
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('Update project error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete project (admin only)
+router.delete('/projects/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ error: 'Invalid project ID' });
+
+    const { rowCount } = await pool.query('DELETE FROM projects WHERE id = $1', [id]);
+    if (rowCount === 0) return res.status(404).json({ error: 'Project not found' });
+    res.json({ message: 'Project deleted' });
+  } catch (err) {
+    console.error('Delete project error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+module.exports = router;

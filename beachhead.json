@@ -1,0 +1,5 @@
+{
+  "public_service": "nginx",
+  "public_port": 80,
+  "stateful_services": ["postgres"]
+}
