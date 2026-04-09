@@ -3,6 +3,33 @@ services:
     build:
       context: .
       dockerfile: nginx/Dockerfile
+      target: nginx-root
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - internal
+
+  nginx-studio:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      target: nginx-studio
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_started
+    networks:
+      - internal
+
+  nginx-admin:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      target: nginx-admin
     expose:
       - "80"
     depends_on:

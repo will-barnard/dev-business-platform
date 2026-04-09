@@ -22,10 +22,20 @@ RUN npm install
 COPY packages/frontend-admin/ .
 RUN npm run build
 
-# Nginx
-FROM nginx:alpine
+# nginx-root — serves will-barnard.com
+FROM nginx:alpine AS nginx-root
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
-COPY --from=build-root /app/dist /usr/share/nginx/html/root
-COPY --from=build-studio /app/dist /usr/share/nginx/html/studio
-COPY --from=build-admin /app/dist /usr/share/nginx/html/admin
+COPY --from=build-root /app/dist /usr/share/nginx/html
+EXPOSE 80
+
+# nginx-studio — serves studio.will-barnard.com
+FROM nginx:alpine AS nginx-studio
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=build-studio /app/dist /usr/share/nginx/html
+EXPOSE 80
+
+# nginx-admin — serves admin.will-barnard.com
+FROM nginx:alpine AS nginx-admin
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
+COPY --from=build-admin /app/dist /usr/share/nginx/html
 EXPOSE 80
