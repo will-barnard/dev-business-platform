@@ -33,13 +33,32 @@
         <!-- Billing -->
         <div class="rounded-xl border border-slate-800 bg-slate-900/30 p-6">
           <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">Billing</h3>
-          <div class="flex items-center justify-center h-32">
+          <div v-if="subscription && subscription.status === 'active'" class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-slate-400">Plan</span>
+              <span class="text-sm text-white font-semibold capitalize">{{ subscription.tier }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-slate-400">Billing</span>
+              <span class="text-sm text-white capitalize">{{ subscription.billing_interval }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-sm text-slate-400">Status</span>
+              <span class="text-xs font-mono bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 capitalize">{{ subscription.status }}</span>
+            </div>
+            <RouterLink to="/billing" class="mt-3 inline-block text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
+              Manage Billing →
+            </RouterLink>
+          </div>
+          <div v-else class="flex items-center justify-center h-32">
             <div class="text-center">
               <svg class="w-8 h-8 text-slate-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
-              <p class="text-sm text-slate-500">Billing integration coming soon</p>
-              <p class="text-xs text-slate-600 mt-1">Stripe payments will be available here</p>
+              <p class="text-sm text-slate-500">No active subscription</p>
+              <RouterLink to="/billing" class="mt-2 inline-block text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
+                Choose a Plan →
+              </RouterLink>
             </div>
           </div>
         </div>
@@ -83,11 +102,24 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 
 const auth = useAuthStore();
 const rootUrl = import.meta.env.VITE_ROOT_URL || 'https://will-barnard.com';
+const subscription = ref(null);
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/billing/subscription', { credentials: 'include' });
+    if (res.ok) {
+      subscription.value = await res.json();
+    }
+  } catch (e) {
+    // Subscription fetch failed silently
+  }
+});
 
 function formatDate(dateStr) {
   if (!dateStr) return '';

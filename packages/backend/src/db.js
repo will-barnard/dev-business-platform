@@ -54,6 +54,20 @@ async function initDb() {
         expires_at TIMESTAMP NOT NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        stripe_customer_id VARCHAR(255),
+        stripe_subscription_id VARCHAR(255) UNIQUE,
+        price_id VARCHAR(255),
+        tier VARCHAR(50),
+        billing_interval VARCHAR(20),
+        status VARCHAR(50) DEFAULT 'inactive',
+        current_period_end TIMESTAMP,
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
     `);
 
     // Seed default pricing if not exists
@@ -65,8 +79,11 @@ async function initDb() {
         "INSERT INTO site_settings (key, value) VALUES ('pricing', $1)",
         [JSON.stringify([
           {
-            name: 'Starter',
-            price: '1,500',
+            name: 'Basic',
+            slug: 'basic',
+            price: '29',
+            price_monthly: '29',
+            price_yearly: '290',
             description: 'Perfect for small businesses needing a web presence',
             features: [
               'Single page website',
@@ -78,7 +95,10 @@ async function initDb() {
           },
           {
             name: 'Professional',
-            price: '4,500',
+            slug: 'professional',
+            price: '79',
+            price_monthly: '79',
+            price_yearly: '790',
             description: 'For businesses ready for a full-featured web application',
             features: [
               'Multi-page website (up to 8 pages)',
@@ -92,7 +112,10 @@ async function initDb() {
           },
           {
             name: 'Enterprise',
+            slug: 'enterprise',
             price: 'Custom',
+            price_monthly: '',
+            price_yearly: '',
             description: 'Full-stack solutions tailored to your business',
             features: [
               'Custom web application',

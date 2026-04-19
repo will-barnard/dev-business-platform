@@ -7,6 +7,21 @@
         <p class="mt-4 text-slate-400 max-w-xl mx-auto">Choose the package that fits your project. Every build includes clean code, responsive design, and thorough testing.</p>
       </div>
 
+      <!-- Billing toggle -->
+      <div v-if="tiers.length > 0" class="flex items-center justify-center gap-3 mb-12">
+        <span :class="['text-sm font-medium', interval === 'monthly' ? 'text-white' : 'text-slate-500']">Monthly</span>
+        <button
+          @click="interval = interval === 'monthly' ? 'yearly' : 'monthly'"
+          :class="['relative w-12 h-6 rounded-full transition-colors', interval === 'yearly' ? 'bg-emerald-500' : 'bg-slate-700']"
+        >
+          <span :class="['absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform', interval === 'yearly' ? 'translate-x-6' : 'translate-x-0.5']" />
+        </button>
+        <span :class="['text-sm font-medium', interval === 'yearly' ? 'text-white' : 'text-slate-500']">
+          Yearly
+          <span class="text-emerald-400 text-xs ml-1">Save 20%</span>
+        </span>
+      </div>
+
       <div v-if="tiers.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
         <div
           v-for="tier in tiers"
@@ -24,8 +39,9 @@
 
           <h3 class="text-lg font-semibold text-white">{{ tier.name }}</h3>
           <div class="mt-4 flex items-baseline gap-1">
-            <span v-if="tier.price !== 'Custom'" class="text-sm text-slate-500">$</span>
-            <span class="text-4xl font-bold text-white">{{ tier.price }}</span>
+            <span v-if="getPrice(tier) !== 'Custom'" class="text-sm text-slate-500">$</span>
+            <span class="text-4xl font-bold text-white">{{ getPrice(tier) }}</span>
+            <span v-if="getPrice(tier) !== 'Custom'" class="text-sm text-slate-500">/{{ interval === 'monthly' ? 'mo' : 'yr' }}</span>
           </div>
           <p class="mt-3 text-sm text-slate-400 leading-relaxed">{{ tier.description }}</p>
 
@@ -38,8 +54,8 @@
             </li>
           </ul>
 
-          <RouterLink
-            to="/contact"
+          <a
+            :href="getCheckoutUrl(tier)"
             :class="[
               'mt-8 block text-center py-3 rounded-lg font-medium transition-colors',
               tier.highlighted
@@ -48,7 +64,7 @@
             ]"
           >
             Get Started
-          </RouterLink>
+          </a>
         </div>
       </div>
 
@@ -62,10 +78,23 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { RouterLink } from 'vue-router';
 
 const tiers = ref([]);
 const loading = ref(true);
+const interval = ref('monthly');
+
+const studioUrl = import.meta.env.VITE_STUDIO_URL || 'https://studio.will-barnard.com';
+
+function getPrice(tier) {
+  if (interval.value === 'yearly' && tier.price_yearly) return tier.price_yearly;
+  return tier.price || tier.price_monthly || 'Custom';
+}
+
+function getCheckoutUrl(tier) {
+  const tierSlug = tier.slug || tier.name?.toLowerCase();
+  if (!tierSlug || getPrice(tier) === 'Custom') return `${studioUrl}/billing`;
+  return `${studioUrl}/billing/checkout?tier=${tierSlug}&interval=${interval.value}`;
+}
 
 onMounted(async () => {
   try {

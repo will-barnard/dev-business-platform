@@ -9,6 +9,10 @@ const routes = [
   { path: '/reset-password', name: 'reset-password', component: () => import('../views/ResetPassword.vue'), meta: { guest: true } },
   { path: '/', name: 'dashboard', component: () => import('../views/Dashboard.vue'), meta: { auth: true } },
   { path: '/profile', name: 'profile', component: () => import('../views/Profile.vue'), meta: { auth: true } },
+  { path: '/billing', name: 'billing', component: () => import('../views/Billing.vue'), meta: { auth: true } },
+  { path: '/billing/checkout', name: 'billing-checkout', component: () => import('../views/Billing.vue'), meta: { auth: true } },
+  { path: '/billing/success', name: 'billing-success', component: () => import('../views/BillingSuccess.vue'), meta: { auth: true } },
+  { path: '/billing/cancel', name: 'billing-cancel', component: () => import('../views/BillingCancel.vue'), meta: { auth: true } },
 ];
 
 const router = createRouter({

@@ -12,11 +12,11 @@
         </div>
 
         <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-tight">
-          {{ hero.headline || 'I Build Digital Experiences' }}
+          {{ hero.headline || 'Websites for artists who want to focus on their work' }}
         </h1>
 
         <p class="mt-6 text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-          {{ hero.subheadline || 'Full-stack developer specializing in modern web applications that are fast, accessible, and built to last.' }}
+          {{ hero.subheadline || 'I design, build, and manage clean, modern websites - so you don’t have to deal with the technical side.' }}
         </p>
 
         <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">

@@ -36,6 +36,14 @@ services:
       ROOT_URL: ${ROOT_URL}
       STUDIO_URL: ${STUDIO_URL}
       ADMIN_URL: ${ADMIN_URL}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      PRICE_BASIC_MONTHLY: ${PRICE_BASIC_MONTHLY}
+      PRICE_BASIC_YEARLY: ${PRICE_BASIC_YEARLY}
+      PRICE_PROFESSIONAL_MONTHLY: ${PRICE_PROFESSIONAL_MONTHLY}
+      PRICE_PROFESSIONAL_YEARLY: ${PRICE_PROFESSIONAL_YEARLY}
+      PRICE_ENTERPRISE_MONTHLY: ${PRICE_ENTERPRISE_MONTHLY}
+      PRICE_ENTERPRISE_YEARLY: ${PRICE_ENTERPRISE_YEARLY}
     volumes:
       - ./packages/backend/src:/app/src
       - backend_nm:/app/node_modules
@@ -59,6 +67,7 @@ services:
         CMD ["npm", "run", "dev", "--", "--host"]
     environment:
       API_PROXY_TARGET: http://backend:3001
+      VITE_STUDIO_URL: ${STUDIO_URL}
       CHOKIDAR_USEPOLLING: "1"
     volumes:
       - ./packages/frontend-root:/app

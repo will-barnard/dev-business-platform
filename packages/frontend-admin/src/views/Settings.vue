@@ -51,7 +51,12 @@
             <div class="space-y-3">
               <div class="grid grid-cols-2 gap-3">
                 <input v-model="tier.name" type="text" placeholder="Tier name" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
-                <input v-model="tier.price" type="text" placeholder="Price" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+                <input v-model="tier.slug" type="text" placeholder="Slug (e.g. basic)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+              </div>
+              <div class="grid grid-cols-3 gap-3">
+                <input v-model="tier.price" type="text" placeholder="Display price" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+                <input v-model="tier.price_monthly" type="text" placeholder="Monthly price" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+                <input v-model="tier.price_yearly" type="text" placeholder="Yearly price" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
               </div>
               <input v-model="tier.description" type="text" placeholder="Description" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
               <div>
@@ -93,7 +98,10 @@ const pricingMsg = ref('');
 function addTier() {
   pricing.value.push({
     name: '',
+    slug: '',
     price: '',
+    price_monthly: '',
+    price_yearly: '',
     description: '',
     features: [],
     _featuresText: '',
@@ -127,7 +135,10 @@ async function savePricing() {
   try {
     const tiers = pricing.value.map(t => ({
       name: t.name,
+      slug: t.slug,
       price: t.price,
+      price_monthly: t.price_monthly,
+      price_yearly: t.price_yearly,
       description: t.description,
       features: t._featuresText.split('\n').map(f => f.trim()).filter(Boolean),
       highlighted: t.highlighted,

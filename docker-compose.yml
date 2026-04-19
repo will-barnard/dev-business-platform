@@ -28,6 +28,14 @@ services:
       - ROOT_URL=${ROOT_URL:-https://will-barnard.com}
       - STUDIO_URL=${STUDIO_URL:-https://studio.will-barnard.com}
       - ADMIN_URL=${ADMIN_URL:-https://admin.will-barnard.com}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - PRICE_BASIC_MONTHLY=${PRICE_BASIC_MONTHLY}
+      - PRICE_BASIC_YEARLY=${PRICE_BASIC_YEARLY}
+      - PRICE_PROFESSIONAL_MONTHLY=${PRICE_PROFESSIONAL_MONTHLY}
+      - PRICE_PROFESSIONAL_YEARLY=${PRICE_PROFESSIONAL_YEARLY}
+      - PRICE_ENTERPRISE_MONTHLY=${PRICE_ENTERPRISE_MONTHLY}
+      - PRICE_ENTERPRISE_YEARLY=${PRICE_ENTERPRISE_YEARLY}
     depends_on:
       postgres:
         condition: service_healthy
