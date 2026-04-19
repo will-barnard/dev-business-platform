@@ -6,6 +6,8 @@ const portfolioRoutes = require('./routes/portfolio');
 const settingsRoutes = require('./routes/settings');
 const contactRoutes = require('./routes/contact');
 const billingRoutes = require('./routes/billing');
+const usersRoutes = require('./routes/users');
+const conversationsRoutes = require('./routes/conversations');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -21,6 +23,8 @@ app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/users', usersRoutes);
+app.use('/api/conversations', conversationsRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 

@@ -12,9 +12,9 @@
         <span :class="['text-sm font-medium', interval === 'monthly' ? 'text-white' : 'text-slate-500']">Monthly</span>
         <button
           @click="interval = interval === 'monthly' ? 'yearly' : 'monthly'"
-          :class="['relative w-12 h-6 rounded-full transition-colors', interval === 'yearly' ? 'bg-emerald-500' : 'bg-slate-700']"
+          :class="['relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer', interval === 'yearly' ? 'bg-emerald-500' : 'bg-slate-700']"
         >
-          <span :class="['absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform', interval === 'yearly' ? 'translate-x-6' : 'translate-x-0.5']" />
+          <span :class="['inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform', interval === 'yearly' ? 'translate-x-6' : 'translate-x-1']" />
         </button>
         <span :class="['text-sm font-medium', interval === 'yearly' ? 'text-white' : 'text-slate-500']">
           Yearly

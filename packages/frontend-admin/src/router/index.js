@@ -10,6 +10,7 @@ const routes = [
   { path: '/projects/:id', name: 'project-edit', component: () => import('../views/ProjectEdit.vue'), meta: { admin: true } },
   { path: '/settings', name: 'settings', component: () => import('../views/Settings.vue'), meta: { admin: true } },
   { path: '/messages', name: 'messages', component: () => import('../views/Messages.vue'), meta: { admin: true } },
+  { path: '/users', name: 'users', component: () => import('../views/Users.vue'), meta: { admin: true } },
 ];
 
 const router = createRouter({

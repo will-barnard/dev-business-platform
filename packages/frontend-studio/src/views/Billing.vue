@@ -37,47 +37,68 @@
       </div>
 
       <!-- No subscription -->
-      <div v-else class="space-y-6">
-        <div class="rounded-xl border border-slate-800 bg-slate-900/30 p-6 text-center">
+      <div v-else class="space-y-8">
+        <div class="text-center">
           <svg class="w-10 h-10 text-slate-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
           </svg>
           <h3 class="text-lg font-semibold text-white mb-2">No active subscription</h3>
-          <p class="text-sm text-slate-400 mb-6">Choose a plan to get started.</p>
+          <p class="text-sm text-slate-400 mb-8">Choose a plan to get started.</p>
 
-          <!-- Plan selector -->
-          <div class="flex items-center justify-center gap-3 mb-6">
-            <span :class="['text-sm', interval === 'monthly' ? 'text-white' : 'text-slate-500']">Monthly</span>
+          <!-- Billing toggle -->
+          <div class="flex items-center justify-center gap-3">
+            <span :class="['text-sm font-medium transition-colors', interval === 'monthly' ? 'text-white' : 'text-slate-500']">Monthly</span>
             <button
               @click="interval = interval === 'monthly' ? 'yearly' : 'monthly'"
-              :class="['relative w-12 h-6 rounded-full transition-colors', interval === 'yearly' ? 'bg-emerald-500' : 'bg-slate-700']"
+              :class="['relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors cursor-pointer', interval === 'yearly' ? 'bg-emerald-500' : 'bg-slate-700']"
             >
-              <span :class="['absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform', interval === 'yearly' ? 'translate-x-6' : 'translate-x-0.5']" />
+              <span :class="['inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform', interval === 'yearly' ? 'translate-x-6' : 'translate-x-1']" />
             </button>
-            <span :class="['text-sm', interval === 'yearly' ? 'text-white' : 'text-slate-500']">Yearly</span>
+            <span :class="['text-sm font-medium transition-colors', interval === 'yearly' ? 'text-white' : 'text-slate-500']">
+              Yearly
+              <span class="text-emerald-400 text-xs ml-1">Save 20%</span>
+            </span>
           </div>
+        </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
-            <button
-              v-for="tier in ['basic', 'professional', 'enterprise']" 
-              :key="tier"
-              @click="checkout(tier)"
-              :disabled="checkoutLoading === tier || !prices[`${tier}_${interval}`]"
-              :class="[
-                'rounded-lg border p-4 transition-all text-left disabled:opacity-50',
-                tier === 'professional'
-                  ? 'border-emerald-500/50 bg-emerald-500/5 hover:border-emerald-500'
-                  : 'border-slate-800 hover:border-slate-700'
-              ]"
-            >
-              <p class="text-sm font-semibold text-white capitalize">{{ tier }}</p>
-              <p v-if="getTierPrice(tier)" class="text-lg font-bold text-white mt-1">
-                <span v-if="getTierPrice(tier) !== 'Custom'" class="text-xs font-normal text-slate-400">$</span>{{ getTierPrice(tier) }}<span v-if="getTierPrice(tier) !== 'Custom'" class="text-xs font-normal text-slate-400">/{{ interval === 'monthly' ? 'mo' : 'yr' }}</span>
-              </p>
-              <p class="text-xs text-slate-500 mt-0.5 capitalize">{{ interval }}</p>
-              <span v-if="checkoutLoading === tier" class="inline-block mt-2 w-4 h-4 border-2 border-slate-700 border-t-emerald-400 rounded-full animate-spin" />
-            </button>
-          </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+          <button
+            v-for="t in tiers"
+            :key="tierSlug(t)"
+            @click="checkout(tierSlug(t))"
+            :disabled="checkoutLoading === tierSlug(t) || !prices[`${tierSlug(t)}_${interval}`]"
+            :class="[
+              'relative rounded-xl border p-5 text-left transition-all disabled:opacity-40',
+              t.highlighted
+                ? 'border-emerald-500/50 bg-emerald-500/5 hover:border-emerald-500 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/10 sm:-translate-y-2'
+                : 'border-slate-800 bg-slate-900/30 hover:border-slate-700'
+            ]"
+          >
+            <div v-if="t.highlighted" class="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-mono bg-emerald-500 text-slate-950 px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider whitespace-nowrap">
+              Recommended
+            </div>
+            <p class="text-sm font-semibold text-white">{{ t.name }}</p>
+            <div class="mt-2 flex items-baseline gap-0.5">
+              <template v-if="currentPrice(t)">
+                <span class="text-xs text-slate-500">$</span>
+                <span class="text-2xl font-bold text-white">{{ currentPrice(t) }}</span>
+                <span class="text-xs text-slate-500">/{{ interval === 'monthly' ? 'mo' : 'yr' }}</span>
+              </template>
+              <span v-else class="text-lg font-semibold text-white">Custom</span>
+            </div>
+            <p v-if="t.description" class="text-xs text-slate-500 mt-2 line-clamp-2">{{ t.description }}</p>
+            <div :class="[
+              'mt-4 py-2 rounded-lg text-center text-sm font-medium transition-colors',
+              t.highlighted
+                ? 'bg-emerald-500 text-slate-950'
+                : 'bg-slate-800 text-slate-300'
+            ]">
+              {{ currentPrice(t) ? 'Get Started' : 'Contact Us' }}
+            </div>
+            <span v-if="checkoutLoading === tierSlug(t)" class="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-950/60">
+              <span class="w-5 h-5 border-2 border-slate-700 border-t-emerald-400 rounded-full animate-spin" />
+            </span>
+          </button>
         </div>
       </div>
 
@@ -120,11 +141,13 @@ async function loadData() {
   }
 }
 
-function getTierPrice(tierSlug) {
-  const t = tiers.value.find(t => (t.slug || t.name?.toLowerCase()) === tierSlug);
-  if (!t) return null;
-  if (interval.value === 'yearly') return t.price_yearly || 'Custom';
-  return t.price_monthly || 'Custom';
+function tierSlug(t) {
+  return t.slug || t.name?.toLowerCase();
+}
+
+function currentPrice(t) {
+  const p = interval.value === 'yearly' ? t.price_yearly : t.price_monthly;
+  return p || null;
 }
 
 async function checkout(tier) {

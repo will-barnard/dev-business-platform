@@ -15,6 +15,8 @@ async function initDb() {
         password_hash VARCHAR(255) NOT NULL,
         name VARCHAR(255) NOT NULL,
         role VARCHAR(50) DEFAULT 'client',
+        website_url VARCHAR(500),
+        admin_url VARCHAR(500),
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
@@ -68,6 +70,27 @@ async function initDb() {
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS conversations (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        subject VARCHAR(500),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS conversation_messages (
+        id SERIAL PRIMARY KEY,
+        conversation_id INTEGER REFERENCES conversations(id) ON DELETE CASCADE,
+        sender_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+        body TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT false,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
+      -- Add columns for existing installs
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url VARCHAR(500);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_url VARCHAR(500);
     `);
 
     // Seed default pricing if not exists
