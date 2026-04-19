@@ -59,7 +59,7 @@
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
             <button
-              v-for="tier in ['basic', 'professional', 'enterprise']"
+              v-for="tier in ['basic', 'professional', 'enterprise']" 
               :key="tier"
               @click="checkout(tier)"
               :disabled="checkoutLoading === tier || !prices[`${tier}_${interval}`]"
@@ -71,7 +71,10 @@
               ]"
             >
               <p class="text-sm font-semibold text-white capitalize">{{ tier }}</p>
-              <p class="text-xs text-slate-500 mt-1 capitalize">{{ interval }}</p>
+              <p v-if="getTierPrice(tier)" class="text-lg font-bold text-white mt-1">
+                <span v-if="getTierPrice(tier) !== 'Custom'" class="text-xs font-normal text-slate-400">$</span>{{ getTierPrice(tier) }}<span v-if="getTierPrice(tier) !== 'Custom'" class="text-xs font-normal text-slate-400">/{{ interval === 'monthly' ? 'mo' : 'yr' }}</span>
+              </p>
+              <p class="text-xs text-slate-500 mt-0.5 capitalize">{{ interval }}</p>
               <span v-if="checkoutLoading === tier" class="inline-block mt-2 w-4 h-4 border-2 border-slate-700 border-t-emerald-400 rounded-full animate-spin" />
             </button>
           </div>
@@ -90,6 +93,7 @@ import { useRoute } from 'vue-router';
 const route = useRoute();
 const subscription = ref(null);
 const prices = ref({});
+const tiers = ref([]);
 const loading = ref(true);
 const error = ref('');
 const checkoutLoading = ref(null);
@@ -98,17 +102,29 @@ const interval = ref('monthly');
 
 async function loadData() {
   try {
-    const [subRes, priceRes] = await Promise.all([
+    const [subRes, priceRes, settingsRes] = await Promise.all([
       fetch('/api/billing/subscription', { credentials: 'include' }),
       fetch('/api/billing/prices'),
+      fetch('/api/settings'),
     ]);
     if (subRes.ok) subscription.value = await subRes.json();
     if (priceRes.ok) prices.value = await priceRes.json();
+    if (settingsRes.ok) {
+      const s = await settingsRes.json();
+      if (s.pricing) tiers.value = s.pricing;
+    }
   } catch {
     error.value = 'Failed to load billing info';
   } finally {
     loading.value = false;
   }
+}
+
+function getTierPrice(tierSlug) {
+  const t = tiers.value.find(t => (t.slug || t.name?.toLowerCase()) === tierSlug);
+  if (!t) return null;
+  if (interval.value === 'yearly') return t.price_yearly || 'Custom';
+  return t.price_monthly || 'Custom';
 }
 
 async function checkout(tier) {

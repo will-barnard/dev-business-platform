@@ -86,8 +86,8 @@ const interval = ref('monthly');
 const studioUrl = import.meta.env.VITE_STUDIO_URL || 'https://studio.will-barnard.com';
 
 function getPrice(tier) {
-  if (interval.value === 'yearly' && tier.price_yearly) return tier.price_yearly;
-  return tier.price || tier.price_monthly || 'Custom';
+  if (interval.value === 'yearly') return tier.price_yearly || 'Custom';
+  return tier.price_monthly || 'Custom';
 }
 
 function getCheckoutUrl(tier) {

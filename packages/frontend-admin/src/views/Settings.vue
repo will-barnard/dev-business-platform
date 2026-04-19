@@ -53,10 +53,15 @@
                 <input v-model="tier.name" type="text" placeholder="Tier name" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
                 <input v-model="tier.slug" type="text" placeholder="Slug (e.g. basic)" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
               </div>
-              <div class="grid grid-cols-3 gap-3">
-                <input v-model="tier.price" type="text" placeholder="Display price" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
-                <input v-model="tier.price_monthly" type="text" placeholder="Monthly price" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
-                <input v-model="tier.price_yearly" type="text" placeholder="Yearly price" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-slate-500 mb-1">Monthly price ($)</label>
+                  <input v-model="tier.price_monthly" type="text" placeholder="e.g. 29" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+                </div>
+                <div>
+                  <label class="block text-xs text-slate-500 mb-1">Yearly price ($) <span class="text-emerald-500">or leave blank for Custom</span></label>
+                  <input v-model="tier.price_yearly" type="text" placeholder="e.g. 290" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+                </div>
               </div>
               <input v-model="tier.description" type="text" placeholder="Description" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
               <div>
@@ -99,7 +104,6 @@ function addTier() {
   pricing.value.push({
     name: '',
     slug: '',
-    price: '',
     price_monthly: '',
     price_yearly: '',
     description: '',
@@ -136,7 +140,6 @@ async function savePricing() {
     const tiers = pricing.value.map(t => ({
       name: t.name,
       slug: t.slug,
-      price: t.price,
       price_monthly: t.price_monthly,
       price_yearly: t.price_yearly,
       description: t.description,
