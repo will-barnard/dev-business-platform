@@ -59,23 +59,50 @@
 
       <!-- Images -->
       <div>
-        <label class="block text-sm font-medium text-slate-300 mb-2">Image URLs</label>
+        <label class="block text-sm font-medium text-slate-300 mb-2">Images</label>
         <div class="space-y-2">
-          <div v-for="(img, idx) in form.images" :key="idx" class="flex gap-2">
+          <div v-for="(img, idx) in form.images" :key="idx" class="flex gap-2 items-center">
+            <!-- Thumbnail -->
+            <div class="shrink-0 w-10 h-10 rounded-lg border border-slate-700 overflow-hidden bg-slate-900 flex items-center justify-center">
+              <img v-if="img" :src="img" class="w-full h-full object-cover" />
+              <svg v-else class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            </div>
+            <!-- URL input -->
             <input
               v-model="form.images[idx]"
-              type="url"
+              type="text"
               class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-2.5 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-              placeholder="https://example.com/image.png"
+              placeholder="https://example.com/image.jpg"
             />
-            <button type="button" @click="form.images.splice(idx, 1)" class="p-2 text-slate-400 hover:text-red-400 transition-colors">
+            <!-- Hidden file input -->
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              class="hidden"
+              :ref="el => { if (el) fileInputRefs[idx] = el }"
+              @change="e => handleFileUpload(e, idx)"
+            />
+            <!-- Upload button -->
+            <button
+              type="button"
+              :disabled="!!uploading[idx]"
+              @click="fileInputRefs[idx]?.click()"
+              class="shrink-0 p-2 text-slate-400 hover:text-emerald-400 disabled:opacity-40 transition-colors"
+              title="Upload image file"
+            >
+              <svg v-if="!uploading[idx]" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/></svg>
+            </button>
+            <!-- Remove button -->
+            <button type="button" @click="form.images.splice(idx, 1)" class="shrink-0 p-2 text-slate-400 hover:text-red-400 transition-colors">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
           <button type="button" @click="form.images.push('')" class="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">
-            + Add image URL
+            + Add image
           </button>
         </div>
+        <p v-if="uploadError" class="mt-2 text-xs text-red-400">{{ uploadError }}</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -140,6 +167,33 @@ const form = reactive({
 });
 const error = ref('');
 const saving = ref(false);
+const uploadError = ref('');
+const uploading = ref([]);
+const fileInputRefs = ref([]);
+
+async function handleFileUpload(e, idx) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  uploading.value[idx] = true;
+  uploadError.value = '';
+  try {
+    const fd = new FormData();
+    fd.append('image', file);
+    const res = await fetch('/api/portfolio/upload', {
+      method: 'POST',
+      credentials: 'include',
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Upload failed');
+    form.images[idx] = data.url;
+  } catch (err) {
+    uploadError.value = err.message;
+  } finally {
+    uploading.value[idx] = false;
+    e.target.value = '';
+  }
+}
 
 onMounted(async () => {
   if (!isNew.value) {

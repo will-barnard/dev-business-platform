@@ -36,6 +36,9 @@ services:
       - PRICE_PROFESSIONAL_YEARLY=${PRICE_PROFESSIONAL_YEARLY}
       - PRICE_ENTERPRISE_MONTHLY=${PRICE_ENTERPRISE_MONTHLY}
       - PRICE_ENTERPRISE_YEARLY=${PRICE_ENTERPRISE_YEARLY}
+      - UPLOADS_DIR=/app/uploads
+    volumes:
+      - uploads-data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,6 +66,8 @@ services:
 volumes:
   postgres-data:
     name: willbarnard-postgres
+  uploads-data:
+    name: willbarnard-uploads
 
 networks:
   internal:

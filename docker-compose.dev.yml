@@ -44,9 +44,11 @@ services:
       PRICE_PROFESSIONAL_YEARLY: ${PRICE_PROFESSIONAL_YEARLY}
       PRICE_ENTERPRISE_MONTHLY: ${PRICE_ENTERPRISE_MONTHLY}
       PRICE_ENTERPRISE_YEARLY: ${PRICE_ENTERPRISE_YEARLY}
+      UPLOADS_DIR: /app/uploads
     volumes:
       - ./packages/backend/src:/app/src
       - backend_nm:/app/node_modules
+      - uploads-data-dev:/app/uploads
     ports:
       - "3001:3001"
     depends_on:
@@ -135,3 +137,4 @@ volumes:
   frontend_root_nm:
   frontend_studio_nm:
   frontend_admin_nm:
+  uploads-data-dev:

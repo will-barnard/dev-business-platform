@@ -1,5 +1,6 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 const { initDb } = require('./db');
 const authRoutes = require('./routes/auth');
 const portfolioRoutes = require('./routes/portfolio');
@@ -17,6 +18,9 @@ app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 
 app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
+
+const UPLOADS_DIR = process.env.UPLOADS_DIR || '/app/uploads';
+app.use('/uploads', express.static(UPLOADS_DIR));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/portfolio', portfolioRoutes);
