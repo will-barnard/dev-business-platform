@@ -21,7 +21,7 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="text-emerald-400 font-mono shrink-0">3.</span>
-            <span>Start your subscription to go live.</span>
+            <span>Start your subscription to go live!</span>
           </li>
         </ol>
       </div>
@@ -67,7 +67,7 @@
             <template v-if="formatBuildCost(tier)">
               <span class="text-slate-400">$</span>
               <span class="font-semibold text-white">{{ formatBuildCost(tier) }}</span>
-              <span class="text-slate-400">one-time build</span>
+              <span class="text-slate-400">one-time build fee</span>
             </template>
             <template v-else>
               <span class="font-semibold text-white">Custom</span>
