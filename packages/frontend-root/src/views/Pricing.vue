@@ -1,10 +1,29 @@
 <template>
   <div class="pt-28 pb-20">
     <div class="mx-auto max-w-6xl px-6">
-      <div class="text-center mb-16">
+      <div class="text-center mb-12">
         <p class="text-sm font-mono text-emerald-400 mb-2">// pricing</p>
         <h1 class="text-4xl font-bold text-white">Simple, Transparent Pricing</h1>
         <p class="mt-4 text-slate-400 max-w-xl mx-auto">Choose the package that fits your project. Every build includes clean code, responsive design, and thorough testing.</p>
+      </div>
+
+      <!-- How it works -->
+      <div v-if="tiers.length > 0" class="max-w-3xl mx-auto mb-12 rounded-xl border border-slate-800 bg-slate-900/30 p-5">
+        <p class="text-xs font-mono text-emerald-400 mb-3 text-center">// how it works</p>
+        <ol class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-slate-300">
+          <li class="flex items-start gap-2">
+            <span class="text-emerald-400 font-mono shrink-0">1.</span>
+            <span>Pay your one-time build cost.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="text-emerald-400 font-mono shrink-0">2.</span>
+            <span>We design and build your site.</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="text-emerald-400 font-mono shrink-0">3.</span>
+            <span>Start your subscription to go live.</span>
+          </li>
+        </ol>
       </div>
 
       <!-- Billing toggle -->
@@ -42,6 +61,18 @@
             <span v-if="getPrice(tier) !== 'Custom'" class="text-sm text-slate-500">$</span>
             <span class="text-4xl font-bold text-white">{{ getPrice(tier) }}</span>
             <span v-if="getPrice(tier) !== 'Custom'" class="text-sm text-slate-500">/{{ interval === 'monthly' ? 'mo' : 'yr' }}</span>
+          </div>
+          <div class="mt-2 inline-flex items-center gap-1.5 text-xs font-mono text-emerald-400/90 bg-emerald-500/5 border border-emerald-500/20 rounded-md px-2 py-1 w-fit">
+            <span class="text-slate-400">+</span>
+            <template v-if="formatBuildCost(tier)">
+              <span class="text-slate-400">$</span>
+              <span class="font-semibold text-white">{{ formatBuildCost(tier) }}</span>
+              <span class="text-slate-400">one-time build</span>
+            </template>
+            <template v-else>
+              <span class="font-semibold text-white">Custom</span>
+              <span class="text-slate-400">build cost</span>
+            </template>
           </div>
           <p class="mt-3 text-sm text-slate-400 leading-relaxed">{{ tier.description }}</p>
 
@@ -90,10 +121,20 @@ function getPrice(tier) {
   return tier.price_monthly || 'Custom';
 }
 
+function formatBuildCost(tier) {
+  const raw = tier.build_cost;
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null;
+  const n = Number(String(raw).replace(/[^0-9.]/g, ''));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n.toLocaleString('en-US');
+}
+
 function getCheckoutUrl(tier) {
   const tierSlug = tier.slug || tier.name?.toLowerCase();
+  // Custom tiers route to the billing page without auto-checkout — user contacts us.
   if (!tierSlug || getPrice(tier) === 'Custom') return `${studioUrl}/billing`;
-  return `${studioUrl}/billing/checkout?tier=${tierSlug}&interval=${interval.value}`;
+  // Entry into the flow is paying the build cost first; subscription comes after.
+  return `${studioUrl}/billing?action=build&tier=${tierSlug}&interval=${interval.value}`;
 }
 
 onMounted(async () => {

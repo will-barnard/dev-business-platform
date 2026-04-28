@@ -63,6 +63,10 @@
                   <input v-model="tier.price_yearly" type="text" placeholder="e.g. 290" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
                 </div>
               </div>
+              <div>
+                <label class="block text-xs text-slate-500 mb-1">One-time build cost ($) <span class="text-emerald-500">lump sum to build the site, leave blank for Custom</span></label>
+                <input v-model="tier.build_cost" type="text" placeholder="e.g. 1500" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
+              </div>
               <input v-model="tier.description" type="text" placeholder="Description" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors" />
               <div>
                 <label class="block text-xs text-slate-500 mb-1">Features (one per line)</label>
@@ -106,6 +110,7 @@ function addTier() {
     slug: '',
     price_monthly: '',
     price_yearly: '',
+    build_cost: '',
     description: '',
     features: [],
     _featuresText: '',
@@ -142,6 +147,7 @@ async function savePricing() {
       slug: t.slug,
       price_monthly: t.price_monthly,
       price_yearly: t.price_yearly,
+      build_cost: t.build_cost,
       description: t.description,
       features: t._featuresText.split('\n').map(f => f.trim()).filter(Boolean),
       highlighted: t.highlighted,

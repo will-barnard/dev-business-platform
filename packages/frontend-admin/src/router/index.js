@@ -11,6 +11,7 @@ const routes = [
   { path: '/settings', name: 'settings', component: () => import('../views/Settings.vue'), meta: { admin: true } },
   { path: '/messages', name: 'messages', component: () => import('../views/Messages.vue'), meta: { admin: true } },
   { path: '/users', name: 'users', component: () => import('../views/Users.vue'), meta: { admin: true } },
+  { path: '/build-purchases', name: 'build-purchases', component: () => import('../views/BuildPurchases.vue'), meta: { admin: true } },
 ];
 
 const router = createRouter({

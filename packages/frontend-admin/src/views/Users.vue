@@ -34,7 +34,23 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-2 shrink-0">
+          <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            <!-- Build badge -->
+            <span
+              v-if="user.build_payment_status === 'paid'"
+              :class="[
+                'text-xs font-mono px-2 py-0.5 rounded-full border whitespace-nowrap',
+                user.build_status === 'ready'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : user.build_status === 'delivered'
+                    ? 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              ]"
+              :title="user.build_is_manual ? 'Manually flagged' : 'Stripe payment'"
+            >
+              build: {{ buildLabel(user.build_status) }}<span v-if="user.build_is_manual"> · manual</span>
+            </span>
+
             <!-- Subscription badge -->
             <span v-if="user.sub_status === 'active'" class="text-xs font-mono bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20 capitalize">
               {{ user.tier }} · {{ user.billing_interval }}
@@ -97,6 +113,15 @@ const loading = ref(true);
 function formatDate(dateStr) {
   if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function buildLabel(s) {
+  return ({
+    not_started: 'queued',
+    in_progress: 'building',
+    ready: 'ready',
+    delivered: 'delivered',
+  })[s] || s || 'paid';
 }
 
 async function saveUser(user) {

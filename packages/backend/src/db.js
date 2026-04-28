@@ -71,6 +71,27 @@ async function initDb() {
         updated_at TIMESTAMP DEFAULT NOW()
       );
 
+      -- Build purchases: one-time payment for site-build work, gates the subscription step.
+      -- build_status flow: not_started → in_progress → ready → delivered.
+      -- "ready" triggers the email asking the client to start their subscription.
+      -- is_manual=true rows are admin-flagged (no Stripe payment behind them).
+      CREATE TABLE IF NOT EXISTS build_purchases (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        tier VARCHAR(50) NOT NULL,
+        amount_cents INTEGER,
+        stripe_checkout_session_id VARCHAR(255) UNIQUE,
+        stripe_payment_intent_id VARCHAR(255) UNIQUE,
+        is_manual BOOLEAN DEFAULT false,
+        status VARCHAR(50) DEFAULT 'paid',
+        build_status VARCHAR(50) DEFAULT 'not_started',
+        build_ready_email_sent_at TIMESTAMP,
+        paid_at TIMESTAMP DEFAULT NOW(),
+        created_at TIMESTAMP DEFAULT NOW(),
+        updated_at TIMESTAMP DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_build_purchases_user ON build_purchases(user_id);
+
       CREATE TABLE IF NOT EXISTS conversations (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -91,6 +112,10 @@ async function initDb() {
       -- Add columns for existing installs
       ALTER TABLE users ADD COLUMN IF NOT EXISTS website_url VARCHAR(500);
       ALTER TABLE users ADD COLUMN IF NOT EXISTS admin_url VARCHAR(500);
+      -- site_live is flipped true when the user activates a subscription. Future hook
+      -- for actually deploying the site lives in the subscription webhook.
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS site_live BOOLEAN DEFAULT false;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS site_live_at TIMESTAMP;
     `);
 
     // Seed default pricing if not exists
@@ -107,6 +132,7 @@ async function initDb() {
             price: '29',
             price_monthly: '29',
             price_yearly: '290',
+            build_cost: '1500',
             description: 'Perfect for small businesses needing a web presence',
             features: [
               'Single page website',
@@ -122,6 +148,7 @@ async function initDb() {
             price: '79',
             price_monthly: '79',
             price_yearly: '790',
+            build_cost: '4500',
             description: 'For businesses ready for a full-featured web application',
             features: [
               'Multi-page website (up to 8 pages)',
@@ -139,6 +166,7 @@ async function initDb() {
             price: 'Custom',
             price_monthly: '',
             price_yearly: '',
+            build_cost: '',
             description: 'Full-stack solutions tailored to your business',
             features: [
               'Custom web application',
