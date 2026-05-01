@@ -105,27 +105,21 @@
         <p v-if="uploadError" class="mt-2 text-xs text-red-400">{{ uploadError }}</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label for="display_order" class="block text-sm font-medium text-slate-300 mb-2">Display Order</label>
+      <div>
+        <label class="flex items-center gap-3 cursor-pointer py-3">
           <input
-            id="display_order"
-            v-model.number="form.display_order"
-            type="number"
-            class="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
-            placeholder="0"
+            v-model="form.is_major"
+            type="checkbox"
+            class="w-5 h-5 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer"
           />
-        </div>
-        <div class="flex items-end">
-          <label class="flex items-center gap-3 cursor-pointer py-3">
-            <input
-              v-model="form.is_major"
-              type="checkbox"
-              class="w-5 h-5 rounded border-slate-600 bg-slate-900 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-0 cursor-pointer"
-            />
-            <span class="text-sm text-slate-300">Major project (featured)</span>
-          </label>
-        </div>
+          <span class="text-sm text-slate-300">
+            Major project (featured)
+            <span class="block text-xs text-slate-500 mt-0.5">Major projects show as image cards. Other projects show as compact rows.</span>
+          </span>
+        </label>
+        <p class="text-xs text-slate-500 mt-2">
+          Display order is set from the <RouterLink to="/projects" class="text-emerald-400 hover:text-emerald-300">Projects list</RouterLink> using the up/down arrows.
+        </p>
       </div>
 
       <div v-if="error" class="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3">
@@ -156,6 +150,10 @@ const route = useRoute();
 const router = useRouter();
 
 const isNew = computed(() => route.name === 'project-new');
+// Note: display_order is intentionally NOT part of this form. It's managed from
+// the projects list view via up/down reorder buttons, which call a dedicated
+// /reorder endpoint. Including it here would let a stale value clobber the
+// list-driven order on every save.
 const form = reactive({
   title: '',
   description: '',
@@ -163,7 +161,6 @@ const form = reactive({
   github_url: '',
   images: [],
   is_major: false,
-  display_order: 0,
 });
 const error = ref('');
 const saving = ref(false);
@@ -208,7 +205,6 @@ onMounted(async () => {
           github_url: data.github_url || '',
           images: data.images || [],
           is_major: data.is_major || false,
-          display_order: data.display_order || 0,
         });
       }
     } catch {

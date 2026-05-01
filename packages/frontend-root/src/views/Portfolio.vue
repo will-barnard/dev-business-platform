@@ -24,8 +24,8 @@
           <span class="w-2 h-2 bg-slate-500 rounded-full" />
           Other Projects
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <ProjectCard v-for="project in otherProjects" :key="project.id" :project="project" />
+        <div class="space-y-3">
+          <ProjectRow v-for="project in otherProjects" :key="project.id" :project="project" />
         </div>
       </div>
 
@@ -45,6 +45,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import ProjectCard from '../components/ProjectCard.vue';
+import ProjectRow from '../components/ProjectRow.vue';
 
 const projects = ref([]);
 const loading = ref(true);

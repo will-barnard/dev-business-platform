@@ -151,6 +151,42 @@ router.put('/projects/:id', requireAdmin, async (req, res) => {
   }
 });
 
+// Reorder projects (admin only).
+// Body: { ids: [int, int, ...] } — assigns display_order = index for each ID, in order.
+// Major / non-major projects are reordered independently by the client; the backend
+// just persists whatever ordering the client sends. The two groups can share the
+// display_order column safely because the public site filters into separate sections
+// before rendering, so cross-group order is never observed.
+router.post('/projects/reorder', requireAdmin, async (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;
+  if (!ids || ids.length === 0) {
+    return res.status(400).json({ error: 'ids must be a non-empty array' });
+  }
+  const intIds = ids.map(v => parseInt(v, 10));
+  if (intIds.some(n => !Number.isInteger(n) || n <= 0)) {
+    return res.status(400).json({ error: 'ids must all be positive integers' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    for (let i = 0; i < intIds.length; i++) {
+      await client.query(
+        `UPDATE projects SET display_order = $1, updated_at = NOW() WHERE id = $2`,
+        [i, intIds[i]]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ ok: true, count: intIds.length });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('Reorder projects error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
 // Delete project (admin only)
 router.delete('/projects/:id', requireAdmin, async (req, res) => {
   try {

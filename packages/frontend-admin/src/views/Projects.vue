@@ -21,47 +21,88 @@
       <RouterLink to="/projects/new" class="text-sm text-emerald-400 hover:text-emerald-300 transition-colors">Create your first project →</RouterLink>
     </div>
 
-    <div v-else class="space-y-3">
-      <div
-        v-for="project in projects"
-        :key="project.id"
-        class="flex items-center justify-between gap-4 p-4 rounded-xl border border-slate-800 bg-slate-900/30 hover:border-slate-700 transition-colors"
-      >
-        <div class="flex items-center gap-4 min-w-0">
-          <div class="w-16 h-10 rounded bg-slate-800 overflow-hidden shrink-0">
-            <img v-if="project.images?.length" :src="project.images[0]" class="w-full h-full object-cover" />
-          </div>
-          <div class="min-w-0">
-            <div class="flex items-center gap-2">
-              <h3 class="text-sm font-medium text-white truncate">{{ project.title }}</h3>
-              <span v-if="project.is_major" class="text-xs font-mono bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                Major
-              </span>
-            </div>
-            <p class="text-xs text-slate-500 truncate mt-0.5">{{ project.url || 'No URL' }}</p>
-          </div>
+    <div v-else class="space-y-10">
+      <!-- Major Projects -->
+      <section>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-mono text-emerald-400 flex items-center gap-2">
+            <span class="w-2 h-2 bg-emerald-400 rounded-full" />
+            major projects
+            <span class="text-slate-600 normal-case font-normal">— shown with image cards</span>
+          </h2>
+          <span v-if="reorderMsg.major" class="text-xs text-emerald-400">{{ reorderMsg.major }}</span>
         </div>
 
-        <div class="flex items-center gap-2 shrink-0">
-          <span class="text-xs text-slate-600 font-mono">Order: {{ project.display_order }}</span>
-          <RouterLink :to="`/projects/${project.id}`" class="p-2 text-slate-400 hover:text-white transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-          </RouterLink>
-          <button @click="deleteProject(project.id)" class="p-2 text-slate-400 hover:text-red-400 transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-          </button>
+        <div v-if="majorProjects.length === 0" class="text-center py-10 rounded-xl border border-dashed border-slate-800 text-sm text-slate-600">
+          No major projects yet. Toggle a project to "major" on its edit page.
         </div>
-      </div>
+        <div v-else class="space-y-2">
+          <ProjectRow
+            v-for="(project, idx) in majorProjects"
+            :key="project.id"
+            :project="project"
+            :index="idx"
+            :total="majorProjects.length"
+            :reordering="reordering"
+            @move="(dir) => move('major', idx, dir)"
+            @delete="deleteProject(project.id)"
+          />
+        </div>
+      </section>
+
+      <!-- Other Projects -->
+      <section>
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-sm font-mono text-slate-400 flex items-center gap-2">
+            <span class="w-2 h-2 bg-slate-500 rounded-full" />
+            other projects
+            <span class="text-slate-600 normal-case font-normal">— shown as compact rows</span>
+          </h2>
+          <span v-if="reorderMsg.other" class="text-xs text-emerald-400">{{ reorderMsg.other }}</span>
+        </div>
+
+        <div v-if="otherProjects.length === 0" class="text-center py-10 rounded-xl border border-dashed border-slate-800 text-sm text-slate-600">
+          No other projects.
+        </div>
+        <div v-else class="space-y-2">
+          <ProjectRow
+            v-for="(project, idx) in otherProjects"
+            :key="project.id"
+            :project="project"
+            :index="idx"
+            :total="otherProjects.length"
+            :reordering="reordering"
+            @move="(dir) => move('other', idx, dir)"
+            @delete="deleteProject(project.id)"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import { RouterLink } from 'vue-router';
+import ProjectRow from '../components/ProjectRow.vue';
 
 const projects = ref([]);
 const loading = ref(true);
+const reordering = ref(false);
+const reorderMsg = reactive({ major: '', other: '' });
+
+const majorProjects = computed(() =>
+  projects.value
+    .filter(p => p.is_major)
+    .slice()
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+);
+const otherProjects = computed(() =>
+  projects.value
+    .filter(p => !p.is_major)
+    .slice()
+    .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+);
 
 async function fetchProjects() {
   try {
@@ -71,6 +112,44 @@ async function fetchProjects() {
     // ignore
   } finally {
     loading.value = false;
+  }
+}
+
+// Move a project up or down within its group, then persist the new order to the backend.
+async function move(group, idx, dir) {
+  if (reordering.value) return;
+  const list = group === 'major' ? majorProjects.value : otherProjects.value;
+  const targetIdx = idx + (dir === 'up' ? -1 : 1);
+  if (targetIdx < 0 || targetIdx >= list.length) return;
+
+  // Build the new order for this group.
+  const newOrder = list.slice();
+  const [moved] = newOrder.splice(idx, 1);
+  newOrder.splice(targetIdx, 0, moved);
+
+  // Optimistically apply locally.
+  newOrder.forEach((p, i) => {
+    const ref = projects.value.find(x => x.id === p.id);
+    if (ref) ref.display_order = i;
+  });
+
+  reordering.value = true;
+  try {
+    const res = await fetch('/api/portfolio/projects/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ ids: newOrder.map(p => p.id) }),
+    });
+    if (!res.ok) throw new Error('Reorder failed');
+    reorderMsg[group] = 'Saved';
+    setTimeout(() => { reorderMsg[group] = ''; }, 1500);
+  } catch {
+    reorderMsg[group] = 'Error — refreshing';
+    await fetchProjects();
+    setTimeout(() => { reorderMsg[group] = ''; }, 2500);
+  } finally {
+    reordering.value = false;
   }
 }
 
