@@ -1,7 +1,27 @@
 <template>
-  <div class="group flex items-center gap-4 px-5 py-4 rounded-lg border border-slate-800 bg-slate-900/30 hover:border-slate-700 transition-colors">
+  <div class="group relative flex items-center gap-4 px-5 py-4 rounded-lg border border-slate-800 bg-slate-900/30 hover:border-slate-700 transition-colors">
     <div class="min-w-0 flex-1">
-      <h3 class="text-base font-semibold text-white group-hover:text-emerald-400 transition-colors">
+      <!--
+        Stretched-link pattern: the title's <a> uses a ::before pseudo-element
+        absolutely sized to the full row, making the entire row a single anchor
+        target. Native semantics → middle-click and cmd-click open in new tabs,
+        keyboard nav works, screen readers identify the row as one link.
+        Inner action links (Live / GitHub) need `relative` so they sit above
+        the stretched link and stay independently clickable.
+      -->
+      <a
+        v-if="primaryHref"
+        :href="primaryHref"
+        target="_blank"
+        rel="noopener"
+        class="text-base font-semibold text-white group-hover:text-emerald-400 transition-colors before:absolute before:inset-0 before:content-[''] before:rounded-lg"
+      >
+        {{ project.title }}
+      </a>
+      <h3
+        v-else
+        class="text-base font-semibold text-white"
+      >
         {{ project.title }}
       </h3>
       <p v-if="project.description" class="mt-1 text-sm text-slate-400 line-clamp-1">
@@ -9,7 +29,7 @@
       </p>
     </div>
 
-    <div class="flex items-center gap-3 shrink-0">
+    <div class="relative flex items-center gap-3 shrink-0">
       <a
         v-if="project.url"
         :href="project.url"
@@ -40,7 +60,12 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   project: { type: Object, required: true },
 });
+
+// Title links to live URL if present, otherwise GitHub URL, otherwise it's not a link at all.
+const primaryHref = computed(() => props.project.url || props.project.github_url || null);
 </script>
