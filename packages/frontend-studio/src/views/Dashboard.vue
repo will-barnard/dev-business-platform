@@ -112,7 +112,7 @@
           <div class="flex flex-wrap gap-3">
             <a
               v-if="auth.user?.website_url"
-              :href="auth.user.website_url"
+              :href="absoluteUrl(auth.user.website_url)"
               target="_blank"
               rel="noopener"
               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border border-slate-700 hover:border-slate-600 bg-slate-800/50 hover:bg-slate-800 text-sm font-medium text-white transition-colors"
@@ -123,7 +123,7 @@
             </a>
             <a
               v-if="auth.user?.admin_url"
-              :href="auth.user.admin_url"
+              :href="absoluteUrl(auth.user.admin_url)"
               target="_blank"
               rel="noopener"
               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-sm font-semibold text-slate-950 transition-colors"
@@ -147,6 +147,12 @@ import { useAuthStore } from '../stores/auth';
 const auth = useAuthStore();
 const rootUrl = import.meta.env.VITE_ROOT_URL || 'https://will-barnard.com';
 const subscription = ref(null);
+
+// Ensure a stored URL is always used as an absolute href, never a relative path.
+function absoluteUrl(url) {
+  if (!url) return null;
+  return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+}
 
 onMounted(async () => {
   try {

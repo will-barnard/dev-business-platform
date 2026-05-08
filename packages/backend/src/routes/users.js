@@ -41,11 +41,12 @@ router.put('/:id', requireAdmin, async (req, res) => {
     const { website_url, admin_url } = req.body;
 
     // Validate URLs if provided
-    if (website_url && website_url.length > 500) {
-      return res.status(400).json({ error: 'Website URL is too long' });
+    const isValidUrl = (u) => /^https?:\/\/.+/.test(u) && u.length <= 500;
+    if (website_url && !isValidUrl(website_url)) {
+      return res.status(400).json({ error: 'Website URL must be an absolute URL starting with http:// or https://' });
     }
-    if (admin_url && admin_url.length > 500) {
-      return res.status(400).json({ error: 'Admin URL is too long' });
+    if (admin_url && !isValidUrl(admin_url)) {
+      return res.status(400).json({ error: 'Admin URL must be an absolute URL starting with http:// or https://' });
     }
 
     const { rows } = await pool.query(
