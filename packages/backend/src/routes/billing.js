@@ -2,7 +2,7 @@ const express = require('express');
 const Stripe = require('stripe');
 const { pool } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
-const { sendBuildReadyEmail } = require('../services/email');
+const { sendBuildReadyEmail, sendPurchaseNotification } = require('../services/email');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -365,6 +365,15 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
              ON CONFLICT (stripe_checkout_session_id) DO NOTHING`,
             [userId, tier, session.amount_total, session.id, session.payment_intent]
           );
+
+          sendPurchaseNotification({
+            type: 'build',
+            customerEmail: session.customer_details?.email || session.customer_email,
+            customerName: session.customer_details?.name,
+            tier,
+            amountCents: session.amount_total,
+            currency: session.currency,
+          }).catch((err) => console.error('Purchase notification email failed:', err));
         } else if (session.mode === 'subscription') {
           // Existing flow: link Stripe customer to user.
           const { customer, subscription, customer_email, client_reference_id } = session;
@@ -394,12 +403,14 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
 
         // Find user by stripe customer ID
         const { rows: userRows } = await pool.query(
-          'SELECT user_id FROM subscriptions WHERE stripe_customer_id = $1 LIMIT 1',
+          'SELECT user_id, email, name FROM subscriptions JOIN users ON users.id = subscriptions.user_id WHERE stripe_customer_id = $1 LIMIT 1',
           [sub.customer]
         );
         const userId = userRows[0]?.user_id;
 
         if (userId) {
+          const isNewSubscription = event.type === 'customer.subscription.created';
+
           await pool.query(
             `INSERT INTO subscriptions (user_id, stripe_customer_id, stripe_subscription_id, price_id, tier, billing_interval, status, current_period_end, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, to_timestamp($8), NOW())
@@ -408,6 +419,18 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
                  status = EXCLUDED.status, current_period_end = EXCLUDED.current_period_end, updated_at = NOW()`,
             [userId, sub.customer, sub.id, priceId, priceInfo.tier, priceInfo.interval, sub.status, sub.current_period_end]
           );
+
+          if (isNewSubscription) {
+            sendPurchaseNotification({
+              type: 'subscription',
+              customerEmail: userRows[0].email,
+              customerName: userRows[0].name,
+              tier: priceInfo.tier,
+              interval: priceInfo.interval,
+              amountCents: sub.items.data[0]?.price?.unit_amount,
+              currency: sub.currency,
+            }).catch((err) => console.error('Purchase notification email failed:', err));
+          }
 
           // Subscription went active → flip site_live and mark the build as delivered.
           // FUTURE: this is where the actual deploy/go-live hook will be wired in.

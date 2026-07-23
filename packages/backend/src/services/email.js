@@ -91,4 +91,42 @@ async function sendBuildReadyEmail(to, name, tier, billingUrl) {
   });
 }
 
-module.exports = { sendPasswordResetEmail, sendContactNotification, sendBuildReadyEmail };
+async function sendPurchaseNotification({ type, customerEmail, customerName, tier, amountCents, currency, interval }) {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  if (!adminEmail) return;
+
+  const amount = typeof amountCents === 'number'
+    ? `${(amountCents / 100).toFixed(2)} ${(currency || 'usd').toUpperCase()}`
+    : 'N/A';
+
+  const label = type === 'subscription'
+    ? `New subscription (${tier || 'unknown'}${interval ? `, ${interval}` : ''})`
+    : `New build purchase (${tier || 'unknown'})`;
+
+  if (!resend) {
+    console.log(`[Email Mock] Purchase notification for admin: ${label} — ${customerEmail} — ${amount}`);
+    return;
+  }
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to: adminEmail,
+    subject: `💰 ${label} — ${customerEmail}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="color: #e2e8f0; margin-bottom: 16px;">${label}</h2>
+        <p><strong>Customer:</strong> ${customerName ? `${customerName} ` : ''}&lt;${customerEmail}&gt;</p>
+        <p><strong>Amount:</strong> ${amount}</p>
+        <p><strong>Tier:</strong> ${tier || 'N/A'}</p>
+        <p><strong>Type:</strong> ${type}</p>
+      </div>
+    `,
+  });
+}
+
+module.exports = {
+  sendPasswordResetEmail,
+  sendContactNotification,
+  sendBuildReadyEmail,
+  sendPurchaseNotification,
+};
