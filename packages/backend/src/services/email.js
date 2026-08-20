@@ -124,9 +124,53 @@ async function sendPurchaseNotification({ type, customerEmail, customerName, tie
   });
 }
 
+async function sendRenewalReminderEmail(to, name, { tier, amountCents, currency, renewalDate, daysUntil, portalUrl }) {
+  const tierLabel = tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : 'your';
+  const dateLabel = renewalDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const amountLabel = typeof amountCents === 'number'
+    ? `${(amountCents / 100).toFixed(2)} ${(currency || 'usd').toUpperCase()}`
+    : 'your usual amount';
+  const whenLabel = daysUntil <= 10 ? 'in about a week' : 'in about a month';
+
+  if (!resend) {
+    console.log(`[Email Mock] Renewal reminder for ${to}: ${amountLabel} on ${dateLabel}`);
+    return;
+  }
+
+  await resend.emails.send({
+    from: FROM_EMAIL,
+    to,
+    subject: `Upcoming renewal ${whenLabel} — ${dateLabel}`,
+    html: `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 20px;">
+        <h2 style="color: #e2e8f0; margin-bottom: 16px;">Your ${tierLabel} plan renews ${whenLabel}</h2>
+        <p style="color: #94a3b8; line-height: 1.6;">
+          ${name ? `Hi ${name},` : 'Hi,'}
+        </p>
+        <p style="color: #94a3b8; line-height: 1.6;">
+          Just a heads up — your annual subscription is set to renew on <strong>${dateLabel}</strong>.
+          You'll be charged <strong>${amountLabel}</strong> automatically on that date.
+        </p>
+        <p style="color: #94a3b8; line-height: 1.6;">
+          No action is needed if you'd like to continue. If you'd rather cancel or switch to monthly
+          billing instead, you can do that yourself below.
+        </p>
+        ${portalUrl ? `
+        <a href="${portalUrl}" style="display: inline-block; margin: 24px 0; padding: 12px 24px; background: #10b981; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600;">
+          Modify or Cancel Subscription
+        </a>` : ''}
+        <p style="color: #64748b; font-size: 14px;">
+          Questions? Just reply to this email.
+        </p>
+      </div>
+    `,
+  });
+}
+
 module.exports = {
   sendPasswordResetEmail,
   sendContactNotification,
   sendBuildReadyEmail,
   sendPurchaseNotification,
+  sendRenewalReminderEmail,
 };

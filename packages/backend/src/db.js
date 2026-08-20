@@ -116,6 +116,11 @@ async function initDb() {
       -- for actually deploying the site lives in the subscription webhook.
       ALTER TABLE users ADD COLUMN IF NOT EXISTS site_live BOOLEAN DEFAULT false;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS site_live_at TIMESTAMP;
+
+      -- Yearly-subscription renewal reminders: stamped once each reminder is sent
+      -- so the daily check never emails a customer twice for the same renewal.
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS renewal_reminder_30d_sent_at TIMESTAMP;
+      ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS renewal_reminder_7d_sent_at TIMESTAMP;
     `);
 
     // Seed default pricing if not exists

@@ -3,6 +3,7 @@ const Stripe = require('stripe');
 const { pool } = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const { sendBuildReadyEmail, sendPurchaseNotification } = require('../services/email');
+const { runRenewalReminderCheck } = require('../jobs/renewalReminders');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -167,21 +168,92 @@ router.get('/build-purchase', requireAuth, async (req, res) => {
   }
 });
 
+// In-memory cache of tier → restricted Billing Portal Configuration id, backed
+// by site_settings so it survives restarts (Stripe configs don't need to be
+// recreated once made — we just reuse the id).
+const PORTAL_CONFIG_CACHE = {};
+
+// Tier changes only happen through a new build purchase (different tiers are
+// different builds), so the self-serve portal should never offer them. This
+// builds (once per tier, then caches) a restricted Billing Portal Configuration
+// that only allows: canceling, or switching between that tier's monthly/yearly price.
+async function getOrCreateRestrictedPortalConfig(tier) {
+  if (PORTAL_CONFIG_CACHE[tier]) return PORTAL_CONFIG_CACHE[tier];
+
+  const settingKey = `stripe_portal_config_${tier}`;
+  const { rows } = await pool.query('SELECT value FROM site_settings WHERE key = $1', [settingKey]);
+  if (rows.length > 0 && rows[0].value?.id) {
+    PORTAL_CONFIG_CACHE[tier] = rows[0].value.id;
+    return rows[0].value.id;
+  }
+
+  const monthlyPriceId = process.env[`PRICE_${tier.toUpperCase()}_MONTHLY`];
+  const yearlyPriceId = process.env[`PRICE_${tier.toUpperCase()}_YEARLY`];
+  const allowedPrices = [monthlyPriceId, yearlyPriceId].filter(Boolean);
+  if (allowedPrices.length === 0) {
+    throw new Error(`No configured subscription prices for tier "${tier}"`);
+  }
+
+  // Monthly/yearly prices for a tier share one underlying Stripe Product.
+  const anchorPrice = await stripe.prices.retrieve(allowedPrices[0]);
+  const productId = typeof anchorPrice.product === 'string' ? anchorPrice.product : anchorPrice.product.id;
+
+  const config = await stripe.billingPortal.configurations.create({
+    features: {
+      subscription_cancel: {
+        enabled: true,
+        mode: 'at_period_end', // keep access through what they already paid for
+      },
+      subscription_update: {
+        enabled: true,
+        default_allowed_updates: ['price'], // price only — no quantity/promo changes
+        proration_behavior: 'create_prorations',
+        products: [{ product: productId, prices: allowedPrices }], // same tier's prices only
+      },
+      payment_method_update: { enabled: true },
+      invoice_history: { enabled: true },
+    },
+  });
+
+  await pool.query(
+    `INSERT INTO site_settings (key, value, updated_at)
+     VALUES ($1, $2, NOW())
+     ON CONFLICT (key) DO UPDATE SET value = $2, updated_at = NOW()`,
+    [settingKey, JSON.stringify({ id: config.id })]
+  );
+
+  PORTAL_CONFIG_CACHE[tier] = config.id;
+  return config.id;
+}
+
 // ── Create Customer Portal session ──
 router.post('/portal-session', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(
-      'SELECT stripe_customer_id FROM subscriptions WHERE user_id = $1 AND stripe_customer_id IS NOT NULL LIMIT 1',
+      `SELECT stripe_customer_id, tier FROM subscriptions
+       WHERE user_id = $1 AND stripe_customer_id IS NOT NULL
+       ORDER BY updated_at DESC LIMIT 1`,
       [req.user.id]
     );
     if (rows.length === 0 || !rows[0].stripe_customer_id) {
       return res.status(400).json({ error: 'No billing account found' });
     }
 
-    const session = await stripe.billingPortal.sessions.create({
+    const sessionParams = {
       customer: rows[0].stripe_customer_id,
       return_url: `${FRONTEND_URL}/`,
-    });
+    };
+
+    if (rows[0].tier) {
+      try {
+        sessionParams.configuration = await getOrCreateRestrictedPortalConfig(rows[0].tier);
+      } catch (err) {
+        // Fall back to the account's default portal config rather than blocking the user.
+        console.error('Restricted portal configuration unavailable, using default:', err);
+      }
+    }
+
+    const session = await stripe.billingPortal.sessions.create(sessionParams);
     res.json({ url: session.url });
   } catch (err) {
     console.error('Portal session error:', err);
@@ -202,6 +274,17 @@ router.get('/prices', (req, res) => {
     prices[`build_${tier}`] = priceId;
   }
   res.json(prices);
+});
+
+// ── Admin: manually trigger the renewal reminder check (for testing) ──
+router.post('/admin/renewal-reminders/run', requireAdmin, async (req, res) => {
+  try {
+    await runRenewalReminderCheck();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Manual renewal reminder run failed:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // ── Admin: list build purchases ──
@@ -435,7 +518,15 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
              VALUES ($1, $2, $3, $4, $5, $6, $7, to_timestamp($8), NOW())
              ON CONFLICT (stripe_subscription_id) DO UPDATE
              SET price_id = EXCLUDED.price_id, tier = EXCLUDED.tier, billing_interval = EXCLUDED.billing_interval,
-                 status = EXCLUDED.status, current_period_end = EXCLUDED.current_period_end, updated_at = NOW()`,
+                 status = EXCLUDED.status, current_period_end = EXCLUDED.current_period_end, updated_at = NOW(),
+                 -- A renewal just advanced the billing period — clear the reminder
+                 -- flags so next year's renewal gets reminded too, not just year one.
+                 renewal_reminder_30d_sent_at = CASE
+                   WHEN subscriptions.current_period_end IS DISTINCT FROM EXCLUDED.current_period_end
+                   THEN NULL ELSE subscriptions.renewal_reminder_30d_sent_at END,
+                 renewal_reminder_7d_sent_at = CASE
+                   WHEN subscriptions.current_period_end IS DISTINCT FROM EXCLUDED.current_period_end
+                   THEN NULL ELSE subscriptions.renewal_reminder_7d_sent_at END`,
             [userId, sub.customer, sub.id, priceId, priceInfo.tier, priceInfo.interval, sub.status, sub.current_period_end]
           );
 
