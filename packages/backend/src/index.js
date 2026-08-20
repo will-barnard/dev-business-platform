@@ -13,6 +13,11 @@ const conversationsRoutes = require('./routes/conversations');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Running behind Beachhead's nginx reverse proxy — trust the first hop so
+// express-rate-limit reads the real client IP from X-Forwarded-For instead
+// of rejecting it.
+app.set('trust proxy', 1);
+
 // Stripe webhook needs raw body — mount BEFORE express.json()
 app.use('/api/billing/webhook', express.raw({ type: 'application/json' }));
 

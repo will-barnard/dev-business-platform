@@ -402,10 +402,29 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         const priceInfo = PRICE_MAP[priceId] || { tier: 'unknown', interval: 'unknown' };
 
         // Find user by stripe customer ID
-        const { rows: userRows } = await pool.query(
+        let { rows: userRows } = await pool.query(
           'SELECT user_id, email, name FROM subscriptions JOIN users ON users.id = subscriptions.user_id WHERE stripe_customer_id = $1 LIMIT 1',
           [sub.customer]
         );
+
+        // Stripe doesn't guarantee event order — this event can arrive before
+        // checkout.session.completed, in which case no subscriptions row exists
+        // yet to join against. Fall back to matching the Stripe customer's email
+        // to a user directly.
+        if (userRows.length === 0) {
+          try {
+            const customer = await stripe.customers.retrieve(sub.customer);
+            if (customer && !customer.deleted && customer.email) {
+              ({ rows: userRows } = await pool.query(
+                'SELECT id AS user_id, email, name FROM users WHERE email = $1',
+                [customer.email]
+              ));
+            }
+          } catch (err) {
+            console.error('Fallback Stripe customer lookup failed:', err);
+          }
+        }
+
         const userId = userRows[0]?.user_id;
 
         if (userId) {
